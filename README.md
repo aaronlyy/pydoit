@@ -1,2 +1,2 @@
-# pydoit-open
-An API Wrapper around the i-doit open API
+# pydoit
+An API Wrapper around the i-doit API
