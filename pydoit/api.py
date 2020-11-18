@@ -1,41 +1,63 @@
+
+# https://en.wikipedia.org/wiki/JSON-RPC
+# https://kb.i-doit.com/pages/viewpage.action?pageId=37355644
+# https://kb.i-doit.com/display/en/Methods
+
 import requests
 
 class Idoit:
-    def __init__(self, url, username, password, apikey):
-        self.username = username
-        self.password = password
-        self.auth = (username, password)
+    def __init__(self, url: str, apikey: str):
+        self.url = url
         self.apikey = apikey
         self.session = None
-        self.url = url
+        self.use_auth = False
 
-    def login(self):
-        '''Creates a session-id that can be used for further api calls'''
-        if self.session == None:
-            headers = {"Content-Type": "application/json", "X-RPC-Auth-Username": f"{self.username}", "X-RPC-Auth-Password": f"{self.password}"}
-            body = {
-                "version": "2.0",
-                "method": "idoit.login",
-                "params": {
-                    "apikey": f"{self.apikey}",
-                    "language": "en"
-                },
-                "id": 1
-            }
+    def login(self, username: str, password: str):
+        '''
+        Login with username and password and create a session-id that is saved and used for further api calls
+        ---
+        It may prove useful to use the API method idoit.login for a single authentication if a lot of requests (meaning thousands) are sent from a client.\n
+        Otherwise it is possible that too many sessions are created in a very small time frame but are not terminated.\n
+        This could result in the fact that i-doit stops working until the sessions have been terminated.
+        '''
+        if self.use_auth == False:
+            if self.session == None:
+                headers = {"Content-Type": "application/json", "X-RPC-Auth-Username": f"{username}", "X-RPC-Auth-Password": f"{password}"}
+                body = {
+                    "version": "2.0",
+                    "method": "idoit.login",
+                    "params": {
+                        "apikey": f"{self.apikey}",
+                        "language": "en"
+                    },
+                    "id": 1
+                }
 
-            res = requests.post(self.url, headers=headers, json=body)
-
-            if res.status_code == 200:
+                res = requests.post(self.url, headers=headers, json=body)
                 self.session = res.json()["result"]["session-id"]
+                return res.json()
             else:
-                print(res.json())
-                exit(1)
+                print("Can not log in. Already logged in. Call .logout() to logout.")
         else:
-            # raise error already logged in
-            pass
+            print("Can not log in. HTTP Basic Auth is enabled. (.set_auth())")
+    
+    def logout(self):
+        self.session = None
+        response = self._make_request("idoit.logout")
+        return response.json()
+    
+    def set_auth(self, username: str, password: str):
+        """
+        Use HTTP Basic Auth for every API Call
+        """
+        if self.session == None:
+            self.use_auth = True
+            self.auth = (username, password)
+        else:
+            print("Can not set credentials. Already logged in with session-id.")
         
 
-    def _make_request(self, method, req_id=1, lang="en", **params):
+    def _make_request(self, method: str, req_id: "any" = 1, lang: "en/de" = "en", **params):
         """Make an API Call with passed in method and params
 
         Args:
@@ -52,7 +74,6 @@ class Idoit:
             "params": {
                 **params,
                 "apikey": self.apikey,
-                "language": lang,
             },
             "id": req_id
         }
@@ -60,13 +81,66 @@ class Idoit:
         headers = {"Content-Type": "application/json"} # standard header
 
         if self.session != None:
-            headers["X-RPC-Auth-Session"] = self.session # add seesion-id to header if exists
+            headers["X-RPC-Auth-Session"] = self.session # add session-id to header if exists
             response = requests.post(self.url, headers=headers, json=body) # auth with session-id
-        else:
+        elif self.use_auth:
             response = requests.post(self.url, headers=headers, json=body, auth=self.auth) # auth with http basic auth
+        else:
+            response = requests.post(self.url, headers=headers, json=body) # request without any authentification
 
-        return response
+        return response.json()
 
-    def get_version(self):
+    def version(self):
+        """
+        Get various information about i-doit itself and the current user.
+
+        Response (JSON Object):
+            login - Array - Information about the user who has performed the request
+            login.userid - String - Object identifier (as numeric string)
+            login.name - String - Object title
+            login.mail - String - E-mail address (see category Persons → Master Data)
+            login.username - String - User name (see category Persons → Login)
+            login.mandator - String - Tenant name
+            login.language - String - Language: "en" or "de"
+            version - String - Version of installed i-doit
+            step - String - Dev, alpha or beta release
+            type - String - Release variant: "OPEN" or "PRO"
+        """
         res = self._make_request("idoit.version")
-        print(res.text)
+        return res
+
+    def search(self, q: str):
+        """
+        Search in i-doit
+
+        q : Query
+
+        Response (JSON Object) (Can also be an array):
+            documentID - String - Identifier
+            key - String - Attribute which relates to query
+            value - String - Value which relates to query
+            type - String - Add-on or core feature
+            link - String - Relative URL which directly links to search result
+            score - Integer - Scoring (deprecated)
+        """
+        res = self._make_request("idoit.search", q=q)
+        return res
+
+    def constants(self):
+        """
+        Fetch defined constants from i-doit
+
+        Response (JSON Object):
+            objectTypes - Object - List of object types:
+                Keys: object type constants
+                Values: translated object type titles
+            categories - Object - List of global and specific categories
+            categories.g - Object - List of global categories
+                Keys: category constants
+                Values: translated category titles
+            categories.s - Object - List of specific categories
+                Keys: category constants
+                Values: translated category titles
+        """
+        res = self._make_request("idoit.constants")
+        return res
