@@ -1,7 +1,6 @@
-# pydoit
-An API Wrapper around the i-doit API
+# pydoit: An API Wrapper around the i-doit API
 
-# currently supported methods
+## currently supported methods
 - idoit.login
 - idoit.logout
 - idoit.version
