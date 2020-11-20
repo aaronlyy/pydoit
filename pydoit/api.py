@@ -19,6 +19,8 @@ class Idoit:
         It may prove useful to use the API method idoit.login for a single authentication if a lot of requests (meaning thousands) are sent from a client.\n
         Otherwise it is possible that too many sessions are created in a very small time frame but are not terminated.\n
         This could result in the fact that i-doit stops working until the sessions have been terminated.
+
+        https://kb.i-doit.com/display/en/Methods#Methods-idoit.login
         '''
         if self.use_auth == False:
             if self.session == None:
@@ -42,6 +44,11 @@ class Idoit:
             print("Can not log in. HTTP Basic Auth is enabled. (.set_auth())")
     
     def logout(self):
+        """
+        Logout and delete session-id from current i-doit instance
+
+        https://kb.i-doit.com/display/en/Methods#Methods-idoit.logout
+        """
         self.session = None
         response = self._make_request("idoit.logout")
         return response.json()
@@ -62,7 +69,7 @@ class Idoit:
 
         Args:
             method (str): A String with the name of the method to be invoked
-            req_id (int, optional): The id of the request it is responding to. Defaults to 1.
+            req_id (any, optional): The id of the request it is responding to. Defaults to 1.
             lang (str, optional): Change language. Defaults to "en".
 
         Returns:
@@ -88,11 +95,18 @@ class Idoit:
         else:
             response = requests.post(self.url, headers=headers, json=body) # request without any authentification
 
-        return response.json()
+        if response.status_code == 200:
+            return response.json()
+        else:
+            # raise error
+            print(response.text)
+            exit(1)
 
     def version(self):
         """
         Get various information about i-doit itself and the current user.
+
+        https://kb.i-doit.com/display/en/Methods#Methods-idoit.version
 
         Response (JSON Object):
             login - Array - Information about the user who has performed the request
@@ -113,6 +127,8 @@ class Idoit:
         """
         Search in i-doit
 
+        https://kb.i-doit.com/display/en/Methods#Methods-idoit.search
+
         q : Query
 
         Response (JSON Object) (Can also be an array):
@@ -122,6 +138,8 @@ class Idoit:
             type - String - Add-on or core feature
             link - String - Relative URL which directly links to search result
             score - Integer - Scoring (deprecated)
+
+        
         """
         res = self._make_request("idoit.search", q=q)
         return res
@@ -129,6 +147,8 @@ class Idoit:
     def constants(self):
         """
         Fetch defined constants from i-doit
+
+        https://kb.i-doit.com/display/en/Methods#Methods-idoit.constants
 
         Response (JSON Object):
             objectTypes - Object - List of object types:
@@ -143,4 +163,37 @@ class Idoit:
                 Values: translated category titles
         """
         res = self._make_request("idoit.constants")
+        return res
+
+    def cmdb_object_create(self, objtype: "str|int", title: str, category: str = None, purpose: str = None, cmdb_status: "str|int" = None, description: str = None):
+        """
+        Create new object with some optional information
+
+
+        https://kb.i-doit.com/display/en/Methods#Methods-cmdb.object.create
+
+        Args:
+            objtype (str|int): Object type constant as string, for example: "C__OBJTYPE__SERVER" or identifier as int
+            title (str): Object title
+            category (str, optional): Attribute Category in category Global. Defaults to "".
+            purpose (str, optional): Attribute Purpose in category Global. Defaults to "".
+            cmdb_status (str|int, optional): Attribute CMDB status in category Global by its constant or identifier as int. Defaults to "".
+            description (str, optional): Attribute Description in category Global. Defaults to "".
+
+        Returns:
+            Response:
+                    id - String - Object identifier (as numeric string)
+                    message - String - Some information
+                    success - Boolean - Should always be true
+        """
+
+        res = self._make_request(
+            "cmdb.object.create",
+            type=objtype,
+            title=title,
+            category=category,
+            purpose=purpose,
+            cmdb_status=cmdb_status,
+            description=description
+        )
         return res
