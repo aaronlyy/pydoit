@@ -9,7 +9,7 @@ setup(
   packages = ['pydoit'],
   version = '0.0.2',
   license='GPL-3.0 License',
-  description = 'An API Wrapper around the i-doit API',
+  description = 'Wrapper around the i-doit API',
   long_description = _long_description,
   long_description_content_type='text/markdown',
   author = 'Aaron Levi Can (aaronlyy)',

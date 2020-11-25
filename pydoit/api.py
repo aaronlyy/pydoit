@@ -1,199 +1,112 @@
+# JSON RPC: https://en.wikipedia.org/wiki/JSON-RPC
+# i-doit JSON RPC: https://kb.i-doit.com/pages/viewpage.action?pageId=37355644
+# List of available methods: https://kb.i-doit.com/display/en/Methods
 
-# https://en.wikipedia.org/wiki/JSON-RPC
-# https://kb.i-doit.com/pages/viewpage.action?pageId=37355644
-# https://kb.i-doit.com/display/en/Methods
+'''
+Wrapper around the i-doit JSON RPC API
+'''
 
 import requests
 
 class Idoit:
-    def __init__(self, url: str, apikey: str):
-        self.url = url
-        self.apikey = apikey
-        self.session = None
-        self.use_auth = False
-
-    def login(self, username: str, password: str):
-        '''
-        Login with username and password and create a session-id that is saved and used for further api calls
-        ---
-        It may prove useful to use the API method idoit.login for a single authentication if a lot of requests (meaning thousands) are sent from a client.\n
-        Otherwise it is possible that too many sessions are created in a very small time frame but are not terminated.\n
-        This could result in the fact that i-doit stops working until the sessions have been terminated.
-
-        https://kb.i-doit.com/display/en/Methods#Methods-idoit.login
-        '''
-        if self.use_auth == False:
-            if self.session == None:
-                headers = {"Content-Type": "application/json", "X-RPC-Auth-Username": f"{username}", "X-RPC-Auth-Password": f"{password}"}
-                body = {
-                    "version": "2.0",
-                    "method": "idoit.login",
-                    "params": {
-                        "apikey": f"{self.apikey}",
-                        "language": "en"
-                    },
-                    "id": 1
-                }
-
-                res = requests.post(self.url, headers=headers, json=body)
-                self.session = res.json()["result"]["session-id"]
-                return res.json()
-            else:
-                print("Can not log in. Already logged in. Call .logout() to logout.")
-        else:
-            print("Can not log in. HTTP Basic Auth is enabled. (.set_auth())")
-    
-    def logout(self):
+    def __init__(self, url, api_key, username=None, password=None):
         """
-        Logout and delete session-id from current i-doit instance
-
-        https://kb.i-doit.com/display/en/Methods#Methods-idoit.logout
-        """
-        self.session = None
-        response = self._make_request("idoit.logout")
-        return response.json()
-    
-    def set_auth(self, username: str, password: str):
-        """
-        Use HTTP Basic Auth for every API Call
-        """
-        if self.session == None:
-            self.use_auth = True
-            self.auth = (username, password)
-        else:
-            print("Can not set credentials. Already logged in with session-id.")
-        
-
-    def _make_request(self, method: str, req_id: "any" = 1, lang: "en/de" = "en", **params):
-        """Make an API Call with passed in method and params
 
         Args:
-            method (str): A String with the name of the method to be invoked
-            req_id (any, optional): The id of the request it is responding to. Defaults to 1.
-            lang (str, optional): Change language. Defaults to "en".
+            url (str): URL to API Endpoint
+            key (str): API Key
+            username (str, optional): Username. Defaults to None.
+            password (str, optional): Password. Defaults to None.
+        """
+        self.url = url
+        self.api_key = api_key
+        self.username = username
+        self.password = password
+
+        self.session_id = None
+
+
+    def req(self, method, req_id=1, headers=None, **params):
+        """Make a request to the API
+
+        Args:
+            method (str): RPC method
+            req_id (int, optional): Request id to identify req/res. Defaults to 1.
+            headers (dict, optional): Overrides the headers. Defaults to None.
+
+        Raises:
+            IdoitRequestError: Raised if an request error happens
+            IdoitError: Unknown Error
 
         Returns:
-            Response: A Response Object (requests)
+            dict: RPC result
         """
+        if headers == None:
+            headers = {
+                "Content-Type": "application/json"
+            }
+
+            if self.session_id: # add the session if exists
+                headers["X-RPC-Auth-Session"] = self.session_id
+            elif self.username and self.password: # use http basic auth if no session exists
+                headers["X-RPC-Auth-Username"] = self.username
+                headers["X-RPC-Auth-Password"] = self.password
+
+            # if none of the above is added the api call will happen without authentification
+
         body = {
             "version": "2.0",
             "method": method,
             "params": {
                 **params,
-                "apikey": self.apikey,
+                "apikey": self.api_key
             },
             "id": req_id
         }
 
-        headers = {"Content-Type": "application/json"} # standard header
+        response = requests.post(self.url, headers=headers, json=body)
 
-        if self.session != None:
-            headers["X-RPC-Auth-Session"] = self.session # add session-id to header if exists
-            response = requests.post(self.url, headers=headers, json=body) # auth with session-id
-        elif self.use_auth:
-            response = requests.post(self.url, headers=headers, json=body, auth=self.auth) # auth with http basic auth
+        if "result" in response.json():
+            return response.json()["result"]
+        elif "error" in response.json():
+            raise IdoitRequestError(response.json()["error"])
         else:
-            response = requests.post(self.url, headers=headers, json=body) # request without any authentification
+            raise IdoitError
 
-        if response.status_code == 200:
-            return response.json()
+
+    def login(self):
+        """Login and create a session_id for further API calls"""
+
+        if self.username and self.password:
+            if self.session_id == None:
+                result = self.req("idoit.login")
+                print(result)
+                self.session_id = result["session-id"]
+            else:
+                raise IdoitAlreadyLoggedInError
         else:
-            # raise error
-            print(response.text)
-            exit(1)
+            raise IdoitMissingCredentialsError
 
-    def version(self):
-        """
-        Get various information about i-doit itself and the current user.
-
-        https://kb.i-doit.com/display/en/Methods#Methods-idoit.version
-
-        Response (JSON Object):
-            login - Array - Information about the user who has performed the request
-            login.userid - String - Object identifier (as numeric string)
-            login.name - String - Object title
-            login.mail - String - E-mail address (see category Persons → Master Data)
-            login.username - String - User name (see category Persons → Login)
-            login.mandator - String - Tenant name
-            login.language - String - Language: "en" or "de"
-            version - String - Version of installed i-doit
-            step - String - Dev, alpha or beta release
-            type - String - Release variant: "OPEN" or "PRO"
-        """
-        res = self._make_request("idoit.version")
-        return res
-
-    def search(self, q: str):
-        """
-        Search in i-doit
-
-        https://kb.i-doit.com/display/en/Methods#Methods-idoit.search
-
-        q : Query
-
-        Response (JSON Object) (Can also be an array):
-            documentID - String - Identifier
-            key - String - Attribute which relates to query
-            value - String - Value which relates to query
-            type - String - Add-on or core feature
-            link - String - Relative URL which directly links to search result
-            score - Integer - Scoring (deprecated)
-
-        
-        """
-        res = self._make_request("idoit.search", q=q)
-        return res
-
-    def constants(self):
-        """
-        Fetch defined constants from i-doit
-
-        https://kb.i-doit.com/display/en/Methods#Methods-idoit.constants
-
-        Response (JSON Object):
-            objectTypes - Object - List of object types:
-                Keys: object type constants
-                Values: translated object type titles
-            categories - Object - List of global and specific categories
-            categories.g - Object - List of global categories
-                Keys: category constants
-                Values: translated category titles
-            categories.s - Object - List of specific categories
-                Keys: category constants
-                Values: translated category titles
-        """
-        res = self._make_request("idoit.constants")
-        return res
-
-    def cmdb_object_create(self, objtype: "str|int", title: str, category: str = None, purpose: str = None, cmdb_status: "str|int" = None, description: str = None):
-        """
-        Create new object with some optional information
+    def logout(self):
+        """Logout of current session"""
+        self.req("idoit.logout")
+        self.session_id = None
 
 
-        https://kb.i-doit.com/display/en/Methods#Methods-cmdb.object.create
+# --- Exceptions ---
+class IdoitError(Exception):
+    """Base idoit error"""
 
-        Args:
-            objtype (str|int): Object type constant as string, for example: "C__OBJTYPE__SERVER" or identifier as int
-            title (str): Object title
-            category (str, optional): Attribute Category in category Global. Defaults to "".
-            purpose (str, optional): Attribute Purpose in category Global. Defaults to "".
-            cmdb_status (str|int, optional): Attribute CMDB status in category Global by its constant or identifier as int. Defaults to "".
-            description (str, optional): Attribute Description in category Global. Defaults to "".
+class IdoitMissingCredentialsError(IdoitError):
+    """Missing credentials"""
+    def __init__(self): pass
+    def __str__(self): return "Missing credentials"
 
-        Returns:
-            Response:
-                    id - String - Object identifier (as numeric string)
-                    message - String - Some information
-                    success - Boolean - Should always be true
-        """
+class IdoitAlreadyLoggedInError(IdoitError):
+    """Already logged in"""
+    def __init__(self): pass
+    def __str__(self): return "Already logged in"
 
-        res = self._make_request(
-            "cmdb.object.create",
-            type=objtype,
-            title=title,
-            category=category,
-            purpose=purpose,
-            cmdb_status=cmdb_status,
-            description=description
-        )
-        return res
+class IdoitRequestError(IdoitError):
+    def __init__(self, msg): self.msg = msg
+    def __str__(self): return str(self.msg)
