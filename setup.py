@@ -7,7 +7,7 @@ with open("README.md", "r") as f:
 setup(
   name = 'pydoit',
   packages = ['pydoit'],
-  version = '0.0.2',
+  version = '0.0.3',
   license='GPL-3.0 License',
   description = 'Wrapper around the i-doit API',
   long_description = _long_description,
@@ -15,7 +15,7 @@ setup(
   author = 'Aaron Levi Can (aaronlyy)',
   author_email = 'aaronlevican@gmail.com',
   url = 'https://github.com/aaronlyy/pydoit',
-  download_url = 'https://github.com/aaronlyy/pydoit/archive/v0.0.2.tar.gz',
+  download_url = 'https://github.com/aaronlyy/pydoit/archive/v0.0.3.tar.gz',
   keywords = ['api', 'wrapper', 'json', 'jsonrpc', 'http'],
   install_requires=[
         "requests"
