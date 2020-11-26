@@ -82,7 +82,11 @@ class Idoit:
     # -----------------------
      # special method
     def login(self, req_id=1):
-        """Login and create a session_id for further API calls"""
+        """Login and create a session_id for further API calls
+
+            Args:
+                req_id (int, optional): Request identifier. Defaults to 1.
+        """
 
         if self.username and self.password:
             if self.session_id == None:
@@ -95,12 +99,20 @@ class Idoit:
 
     # special method
     def logout(self, req_id=1): 
-        """Logout of current session"""
+        """Logout of current session
+            
+            Args:
+                req_id (int, optional): Request identifier. Defaults to 1.
+
+        """
         self._req("idoit.logout", req_id=req_id)
         self.session_id = None
 
     def version(self, req_id=1):
         """Fetch information about i-doit and the current user
+
+        Args:
+            req_id (int, optional): Request identifier. Defaults to 1.
 
         Returns:
             dict: Dictionary containing information
@@ -113,6 +125,7 @@ class Idoit:
 
         Args:
             q (str): Query string
+            req_id (int, optional): Request identifier. Defaults to 1.
 
         Returns:
             list: List containig search results
@@ -122,6 +135,9 @@ class Idoit:
 
     def constants(self, req_id=1):
         """Fetch defined constants from i-doit
+
+        Args:
+            req_id (int, optional): Request identifier. Defaults to 1.
 
         Returns:
             dict: Dictionary containing all constants
@@ -142,6 +158,7 @@ class Idoit:
             purpose (int, optional): Attribute Purpose in category Global. Defaults to None.
             cmdb_status (int, optional): Attribute CMDB status in category Global by identifier as integer. Defaults to None.
             description (str, optional): Attribute Description in category Global. Defaults to None.
+            req_id (int, optional): Request identifier. Defaults to 1.
 
         Returns:
             dict: Dictionary containing info about the creation
@@ -163,6 +180,7 @@ class Idoit:
 
         Args:
             obj_id (int): Object identifier as integer
+            req_id (int, optional): Request identifier. Defaults to 1.
 
         Returns:
             dict: Dict with information
@@ -176,6 +194,7 @@ class Idoit:
         Args:
             obj_id (int): Object identifier as integer
             title (str): New title
+            req_id (int, optional): Request identifier. Defaults to 1.
 
         Returns:
             dict: Result as dict
@@ -189,6 +208,7 @@ class Idoit:
         Args:
             obj_id (int): Object identifier as integer
             status (str): Status constant: C__RECORD_STATUS__ARCHIVED, C__RECORD_STATUS__DELETED, C__RECORD_STATUS__PURGE
+            req_id (int, optional): Request identifier. Defaults to 1.
 
         Returns:
             dict: Result dict
@@ -201,6 +221,7 @@ class Idoit:
 
         Args:
             obj_id (int): Object identifier as integer
+            req_id (int, optional): Request identifier. Defaults to 1.
 
         Returns:
             dict: Result dict
@@ -213,6 +234,7 @@ class Idoit:
 
         Args:
             obj_id (int): Object identifier as integer
+            req_id (int, optional): Request identifier. Defaults to 1.
 
         Returns:
             dict: Result dict
@@ -225,6 +247,7 @@ class Idoit:
 
         Args:
             obj_id (int): Object identifier as integer
+            req_id (int, optional): Request identifier. Defaults to 1.
 
         Returns:
             dict: Result dict
@@ -237,11 +260,25 @@ class Idoit:
 
         Args:
             obj_id (int): Object identifier as integer
+            req_id (int, optional): Request identifier. Defaults to 1.
 
         Returns:
             dict: REsult dict
         """
         res = self._req("cmdb.object.markAsTemplate", object=obj_id, req_id=req_id)
+        return res
+
+    def object_mark_as_mass_change_template(self, obj_id, req_id=1):
+        """Set the Object condition as a Mass Change Template
+
+        Args:
+            obj_id (int): [description]
+            req_id (int, optional): Request identifier. Defaults to 1.
+
+        Returns:
+            [type]: [description]
+        """
+        res = self._req("cmdb.object.markAdMassChangeTemplate", id=obj_id, req_id=req_id)
         return res
 
 
