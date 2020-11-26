@@ -1,7 +1,24 @@
 # pydoit: An API Wrapper around the i-doit API
 
-## currently supported methods
+## Getting started
 
+### Installation
+
+Install pydoit using pip:
+
+```txt
+pip install pydoit
+```
+
+### Example Code
+
+```python
+from pydoit import Idoit
+```
+
+## Currently supported methods
+
+```txt
 - idoit.login
 - idoit.logout
 - idoit.search
@@ -12,3 +29,4 @@
 - cmdb.object.read
 - cmbd.object.update
 - cmdb.object.delete
+```
