@@ -29,4 +29,8 @@ from pydoit import Idoit
 - cmdb.object.read
 - cmbd.object.update
 - cmdb.object.delete
+- cmdb.object.recycle
+- cmdb.object.archive
+- cmdb.object.purge
+- cmdb.object.markAsTemplate
 ```
