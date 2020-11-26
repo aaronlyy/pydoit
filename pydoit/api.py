@@ -267,8 +267,3 @@ class IdoitRequestError(IdoitError):
 
     def __str__(self):
         return str(f"code: {self.code}, msg: {self.msg}, data: {self.data}")
-
-
-if __name__ == "__main__":
-    idoit = Idoit("http://176.0.0.34/i-doit/src/jsonrpc.php", "3ng4hbkaa0isgwoo", "admin", "admin")
-    idoit.login()
